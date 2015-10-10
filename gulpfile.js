@@ -23,7 +23,7 @@ gulp.task('_jshint', function() {
  * Concatenate and uglify source.
  */
 gulp.task('_minify', function() {
-  return gulp.src(['src/b3.js', 'src/**/*.js'])
+  return gulp.src(['src/b3.js', 'src/b3.functions.js', 'src/core/BaseNode.js', 'src/core/*.js', 'src/**/*.js'])
              .pipe(concat(NAME+'.js'))
              .pipe(gulp.dest('./libs'))
              .pipe(uglify())
