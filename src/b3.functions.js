@@ -95,4 +95,114 @@
 
     return cls;
   };
+  
+  /**
+   * This function is used to load projects which are created with
+   * behavior3editor. Nested trees are supported.
+   *
+   * The returned object is a list of the key-value-pairs treeId:tree
+   *
+   * Usage
+   * -----
+   *
+   *     var trees = b3.LoadProject(
+   *       {
+   *          "scope": "project",
+   *          "selectedTree": "xxxxxxxxx",
+   *          "trees": [
+   *            {
+   *              "name": "tree1",
+   *              ...
+   *            },
+   *            {
+   *              "name": "tree2",
+   *              ...
+   *            }
+   *          ]
+   *       }
+   *     );
+   *
+   * @class LoadProject
+   * @constructor
+   * @param {Object} projectData The data structure representing an editor-project.
+   * @param {Object} [names] A namespace or dict containing custom nodes.
+   * @return {Object} A list with the trees.
+  **/
+  b3.LoadProject = function LoadProject(projectData, names)
+  {
+	if (typeof projectData !== "object") {
+		console.error("No project data provided.");
+		return;
+	}
+	names = names || {};
+
+	var trees = {};
+
+	// first create the behavior trees
+	projectData.trees.forEach(function (tree) {
+		var tempTree = new b3.BehaviorTree();
+
+		tempTree.id = tree.id || tempTree.id;
+		tempTree.title = tree.title || tempTree.title;
+		tempTree.description = tree.description || tempTree.description;
+		tempTree.properties = tree.properties || tempTree.properties;
+
+		trees[tree.id] = tempTree;
+	});
+
+	// load the nodes for the tree
+	// TODO: generalize this step because of so much duplicated code (see BehaviorTree.load)
+	projectData.trees.forEach(function (tree) {
+		var nodes = tree.nodes;
+		var tempNodes = {};
+
+		for (var id in nodes) {
+			if (trees[nodes[id].name]) {
+				tempNodes[id] = trees[nodes[id].name]; // the node is a tree
+			}
+			else {
+				var spec = nodes[id];
+
+				if (spec.name in names) {
+					// Look for the name in custom nodes
+					var cls = this._nodes[spec.name];
+				} else if (spec.name in b3) {
+					// Look for the name in default nodes
+					var cls = b3[spec.name];
+				} else {
+					// Invalid node name
+					throw EvalError('BehaviorTree.load: Invalid node name + "' +
+									 spec.name + '".');
+				}
+
+				var node = new cls(spec.properties);
+				node.id = spec.id || node.id;
+				node.title = spec.title || node.title;
+				node.description = spec.description || node.description;
+				node.properties = spec.properties || node.properties;
+
+				tempNodes[id] = node;
+			}
+		}
+		// Connect the nodes
+		for (var id in nodes) {
+			var spec = nodes[id];
+			var node = tempNodes[id];
+
+			if (node.category === b3.COMPOSITE && spec.children) {
+				for (var i = 0; i < spec.children.length; i++) {
+					var cid = spec.children[i];
+					node.children.push(tempNodes[cid]);
+				}
+			} else if (node.category === b3.DECORATOR && spec.child) {
+				node.child = tempNodes[spec.child];
+			}
+		}
+
+		// Connect the root node for the tree
+		trees[tree.id].root = tempNodes[tree.root];
+	});
+
+	return trees;
+  };
 })();
