@@ -302,7 +302,22 @@
       tick.blackboard = blackboard;
       tick.tree       = this;
 
-      /* TICK NODE */
+      return this._execute(tick);
+    },
+	
+	/**
+     * This is the main method to propagate the tick signal to this tree and 
+     * is essential for using subtrees. 
+     *
+     * @method _execute
+     * @param {Tick} tick A tick instance.
+     * @return {Constant} The tick state.
+     * @protected
+    **/
+	_execute: function(tick) {
+	  var blackboard = tick.blackboard;
+	  
+	  /* TICK NODE */
       var state = this.root._execute(tick);
 
       /* CLOSE NODES FROM LAST TICK, IF NEEDED */
@@ -312,7 +327,8 @@
       // does not close if it is still open in this tick
       var start = 0;
       var i;
-      for (i=0; i<Math.min(lastOpenNodes.length, currOpenNodes.length); i++) {
+	  var len = Math.min(lastOpenNodes.length, currOpenNodes.length);
+      for (i=0; i<len; i++) {
         start = i+1;
         if (lastOpenNodes[i] !== currOpenNodes[i]) {
           break;
@@ -329,7 +345,7 @@
       blackboard.set('nodeCount', tick._nodeCount, this.id);
 
       return state;
-    }
+	}
   });
 
 })();
